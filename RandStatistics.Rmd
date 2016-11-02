@@ -1,0 +1,1079 @@
+---
+title: "Learning Statistics with R"
+output:
+    pdf_document:
+        toc: true
+---
+
+# R basics
+## Creating and handling objects
+```{r plot, fig.width=6, fig.height=4}
+# To assign values
+x <- 3
+x <- NULL
+x <- c(x,3) # Concatenate the item 3 to x
+x # Running the code x will return the content of x
+
+a <- c(1,2,3,4,5.5) # Numeric vector
+a > 3 # Test for every element
+a[a>3] # R only selects T elements
+sum(a) # sum of elements of the vector
+b <- c("john","david","kumar","jane","mariam") # character vector
+names(b) <- c("p1","p2","p3","p4","p5")
+b["p3"]
+c <- c(TRUE,TRUE,FALSE, T, F) # Logical vector
+class(c)
+c[3]
+c[c(1,3)]
+c[1:4]
+c[c==T]
+a[a>1 & a<4]
+which(a>1 & a<4)
+# cbind can be used to generate vectors, useful to make tables. colx
+# are the names of each columns, whereas x and y are the data
+# > cbind (col1=x,col2=y)
+
+#Some ways of creating a sequence
+seq(2, 100, 4)
+2:6
+paste("A", 1:6, sep= "")
+rep(b, 5)
+rep(letters[1:5], 3) 
+
+sample(LETTERS, 5, replace=TRUE)  #the function sample can sample with or without replacement
+sample(LETTERS, 5, replace=T)
+sample(LETTERS, 5, replace=T) #notice how sample generates a new sequence each time
+
+set.seed(200)  # sometimes it is useful to create random, but reproducible numbers
+sample(LETTERS, 5, replace=T)
+set.seed(200)
+sample(LETTERS, 5, replace=T)
+
+# Explore objects
+dice  <- sample(1:6, 50, replace=T)
+typeof(dice)
+dice[0]
+str(dice)
+is.vector(dice)
+head(dice)
+tail(dice)
+length(dice)
+max(dice)
+min(dice)
+summary(dice)
+
+# R has a matrix object
+M <- dice
+is.vector(M)
+dim(M)<- c(10,5)  # rows, columns
+is.vector(M)
+str(M)
+M
+# fix(M) allow you to access the variable table
+
+# You can perform matrix operations
+TM <- t(M)
+TM
+"some text" -> M[1,1]
+M
+# Everything has to be the same type, the common possible
+# type for integers and string would be string
+
+# A list can hold a collection of different objects
+MyList <- list(M, a, dice)
+MyList
+MyList[[1]][2,]
+
+# data.frame
+# One row one observation, one column one variable
+MyDataFrame <- data.frame(a, b, c)
+MyDataFrame
+str(MyDataFrame)
+MyDataFrame$a
+MyDataFrame[1,]
+
+# Calculating circle area radius 5*
+radius <- 5
+CircleArea <- function(radius) {
+radius*radius*pi
+}
+CircleArea(5)
+CircleArea(a)
+plot(a, CircleArea(a)) # plot receives order (x,y) of axis
+#explore the function by typing
+CircleArea
+
+# system.time() is useful for finding lines of code that slows your calculations
+x <- rnorm(100000)
+y <- rnorm(100000)
+z <- rep(NA, 100000) # z is created empty but with a given size.
+system.time({
+for (i in 1:100000) {
+    z[i] <- x[i] + y[i]
+}
+})
+```
+
+## Workspace
+Every R session takes place in a working directory. It's good practice to create a new working directory for each separate data analysis project.
+
+```{r}
+getwd()
+# setwd() can be set as the first line of script file to set the path you want to use
+# as working directory
+dir() # files in the working directory
+pi <- 12
+ls() # Check local namespace values
+rm(pi) # Remove it
+# rm(list=ls()) Remove everything
+# save(object, file="name.rda") can be used to save objects as files in workspace
+# load() it again
+# search() list packages loaded in your session
+# install.packages() to install packages
+# library() activate a package
+# history() to view commands used in session
+# save.image(file="name.RData") to save whole workspace
+# load("name.RData") load it back
+```
+
+## Descriptive statistics and data cleaning
+Entering data into R is usually challenging. You're going to spend more time than you expected
+on small details, cleaning and shaping your data set before you can start
+with your actual analysis. In most cases
+you want to make sure your data is
+tidy. This means that
+each row represents one observation,
+for instance, all of the measurements
+taken from one person will end up
+in one row. Furthermore,
+each column should represent only one single variable,
+for instance age, not
+anything such as age and sex
+combined. You will also spend a lot of time
+cleaning your data. This means removing
+any obvious data entry errors, correct the variable types
+and make sure that the variables are formated correctly.
+
+```{r warning=FALSE}
+# http://www.hscic.gov.uk/catalogue/PUB13648
+# 11 rows and skipping first 4 lines
+obesity <- read.csv("http://content.digital.nhs.uk/catalogue/PUB10364/obes-phys-acti-diet-eng-2013-csv-tab.csv", skip=4, nrows=11)
+#obesity <- read.table(file="obesity.csv", header=T) # If the above fails
+str(obesity)
+obesity
+
+# Note that total number of obese females and males are strings because of the comma,
+# this is not really good
+obesity$Males <-  as.numeric(as.character(gsub(",","",obesity$Males)))
+obesity$Females <- as.numeric(as.character(gsub(",","",obesity$Females)))
+# Commas are eliminated using global substitution and convertion is done first changing 
+# to character and then to numeric
+
+# You could also remove the extra columns, the column for the two total and the first row
+obesity<- obesity[-1,c(-2, -5:-14)]
+obesity
+
+#This is the so called wide format, we want the long format to obtain tidy data
+library("reshape2")
+obesitylong <- melt(obesity)
+obesitylong  #long format
+plot(obesitylong$value~obesitylong$variable)
+
+# install.packages("lubridate") can be useful to work with date formats
+# setting argument colClasses=  in read.table() can reduce import time of large datasets
+
+# Dataset exploring the relation in body dimensions
+body <- read.csv("https://www.amstat.org/publications/jse/datasets/body.dat.txt", sep = "")
+dim(body)
+str(body)
+
+# It lacks a header (inspect dataset description!)
+BodyMeasurements <- c("Biacromial_diameter","Biiliac_diameter","Bitrochanteric_diameter","Chest_depth","Chest_diameter","Elbow_diameter","Wrist_diameter","Knee_diameter","Ankle_diameter","Shoulder_girth","Chest_girth","Waist_girth","Navel_girth","Hip_girth","Thigh_girth","Bicep_girth","Forearm_girth","Knee_girth","Calf_max_girth","Ankle_min_girth","Wrist_min_girth","Age","Weight","Height","Gender")
+names(body) <- BodyMeasurements
+summary(body)
+# Setting the parameter margin
+keep.par <- par() # Save old parameters
+par(mar = c(10,4,4,2)+0.1) # + 0.1 adds this value to all members of vector
+boxplot(body, las=3) # With parameters to set names to be tilted
+par(keep.par) # Load old parameters again (or close plotting window)(nevermind the warnings)
+
+# Now for more plotting
+breaks <- seq(min(body$Age),max(body$Age), 5)
+Age_group <- cut(body$Age, breaks) # Divides body$Age into intervals, according with breaks
+body$Age_group <- Age_group
+# Plotting character depends on gender and color on age group
+plot(body$Thigh_girth,body$Bicep_girth, pch=body$Gender, col=body$Age_group)
+```
+
+<!--Erros can occur with knitr when reading data from url here. Workarounds: -->
+<!--http/https, getURL (RCurl package), download.file and import (rio package)-->
+## Download, import and manipulate data
+```{r boxplot, fig.width=6, fig.height=4}
+# This works if there is something in your windows or linux clipboard memory
+# b <- read.table("clipboard", header=T, sep="\t")
+# read.csv()     read.fwf()  scan()   readLines()
+b <- read.table(file="List_P_3D_data.csv", header=T, sep=";")
+head(b, n=3L)
+measurements <- c("EDV","ESV","SV","EF")
+names(b) <-  c("subject",paste(measurements, "3D", sep="."), paste(measurements, "2D", sep="."))
+names(b)
+dim(b)
+b <- b[-31:-33,-10:-12]
+tail(b, n=3L)
+
+test <- read.csv("http://www.hscic.gov.uk/catalogue/PUB14142/nhs-dent-stat-eng-2013-14-thir-quar-anx4u-UDA-CCG.csv")
+str(test)
+boxplot(test$Total ~ test$Patient_Type)
+
+# These can be used for web
+#webq <- readLines("http://www.ncbi.nlm.nih.gov/gds/?term=diabetes")
+#head(webq)
+#grep("diabetes",webq)
+#webq[grep("diabetes",webq)]
+#date()
+```
+
+# Analysing your data
+## How to choose a statistical method for your problem
+There are a variety of statistical methods available, such as standard deviation, boxplot, one sample mean test, and so on. What statistical method should I use for my project?
+
+Start by
+describing the variable. Is it categorical (i.e. male, female)
+or numerical? Talk about the scale.
+Is the data on a scale with useful
+intervals or merely a rank order (i.e. 1st, 2nd)?
+What about the data distribution.
+Is your data normally distributed
+or skewed? But describing the data is not
+enough, you also need to describe
+the question you want to ask and match it to a statistical method.
+
+## Cases statistics use
+When you summarize
+a large dataset with a handful of numbers
+or a graph, you need to think about how your variable fits
+with types of scales, also called
+levels of measurement. Think about this qualitative variable:
+occupation. Measurements
+of this variable can be displayed
+on nominal scale, a scale of
+names. A bar plot
+is a useful visualization of this kind of data
+especially when you want to compare which of the classes
+or values are larger than the others.
+On the other hand if it's more important
+to describe the proportion of
+one variable value compared to the grand total,
+a pie chart can be more useful. If the number of classes is not
+very large a table can be a good
+display of the data. It's difficult to summarize
+data on a nominal scale, but
+if one value dominates over the others
+it can be useful to report the mode
+(simply the most common value).
+
+The next level
+of measurement is the ordinal scale.
+Your variable could be ratings of restaurants
+or student grades. The variable could
+assume values such as: bad,
+acceptable, good, excellent.
+Clearly there is a natural order
+to these values, so that
+acceptable would be between
+bad and good. But
+interval doesn't make sense, so you could never
+state something such as
+"good is twice as good as
+acceptable". It's very common to report this kind of data
+using a bar plot.
+You can describe the centrality of your data
+using the mode,
+the most common value of the variable,
+or the median, the value that separates your dataset
+into equally large parts.
+You can also describe how your measurement are spread.
+You could report the range:
+it's the lowest value and the highest value
+measured for your variable.
+All restaurants were rated between good
+and excellent.
+
+If your variable is temperature
+measured in celsius or farenheit,
+then interval makes sense.
+The distance between 10 degrees
+and 11 degrees is equal to the distance between
+20 and 21 degrees.
+Your data is on interval scale.
+You could have chosen to report your temperature data
+using the Kelvin scale.
+Kelvin has a point 0 that makes sense.
+0 kelvin means no thermal motion.
+That's why it makes sense to say
+that 20 Kelvin
+is twice as much as 10.
+Here your data is on ratio scale,
+the richest level of measurement.
+Interval and ratio scale data
+can be summarized using a histogram
+or a box plot.
+You can report the mode also for
+interval and ratio scale data
+and you can calculate the median
+and the mean.
+If your data is symmetrical
+and lacks extreme values, then
+the mean, median and mode are going to be similar.
+In this case you can report the mean
+and the standard deviation for your data.
+If your data is
+skewed and has extreme values
+there will be a difference between the mean and the median.
+In this case, avoid presenting the mean and standard deviation.
+Instead you should go for the median
+and maybe the range for the spread.
+
+# Formulating hypotheses: Distributions and tests
+## Why many variables are normally distributed?
+The binomial distribution
+is excellent for describing possible outcomes,
+when you would flip a coin several times,
+adding up the results. If you flip a coin once,
+there are two possible outcomes.
+One we will denote success
+and it will get the value one,
+and the other outcome will get the value
+zero. Now we can draw
+a probability distribution for tossing a coin
+once. The probability of success
+in our case will be 50 percent
+or 0,5. Let's toss the coin
+twice and add up the results.
+We call this two trials.
+For the binomial to be relevant
+it's important that the trials
+are independent. This means that the probability of success
+will be the same for each trial.
+So, notice that
+there are one way
+to achieve the result 0.
+That would be tossing zero plus zero.
+There is one way of achieving the result
+two: tossing one plus one.
+But notice that there are two ways
+of achieving the result one - it's
+tossing first zero and then one, or tossing
+first one and then zero. So one
+is the most probable outcome of this experiment. So what you should do
+is to calculate the mean and a standard deviation
+of each of those binomial distributions
+and then draw a normal distribution
+with the same mean and the same standard deviation.
+What you will discover is
+that the normal distribution is an
+excellent approximation of the binomial distribution
+and the approximation grows better
+as the number of trials grows.
+
+Now think about many biological variables,
+like height of a person,
+this will depend of a lot of
+underlying factors, that are
+roughly independent. Let's say that height would
+depend on 300 genes
+and a lot of environmental factors
+such as: were you a smoker or not,
+were you well fed or not.
+So this is similar to a binomial distribution,
+and this is why so many variables in the natural world
+can be a approximated with the normal distribution.
+
+## Central limit theorem
+The most important reason
+why the normal distribution is such a common
+and useful tool in statistical analysis can be drawn from the central limit
+theorem.
+The central limit theorem states
+that if random samples are taken from
+any population, the distribution of the sample means,
+the so-called sampling distribution, is
+approximately normally distributed. And this approximation
+grows better when the samples grow larger.
+
+Imagine the world population
+and their blood pressure. Let's assume
+that the mean blood pressure is ninety
+and that the standard deviation is 10.
+So ninety is the most
+common measurement. Imagine you would select
+three persons at random from the population
+you measure their blood pressure and calculate the mean.
+You would not expect this mean
+to be equal to the population mean, but usually it will be quite similar.
+It's quite common that you would select
+three persons with close to the
+mean blood pressure, or maybe
+one person with low pressure and one with high.
+That's why you will get a mean that
+is often close to the population. It's
+less common that you would pick out three persons
+that all have very low blood pressure.
+If you would select
+a larger sample, let's say thirty persons,
+the outcome to pick only
+low blood pressure subjects and
+to get a low sample mean would be
+even less likely.
+
+Imagine you would take
+repeated samples of thirty persons.
+Each time you calculate the mean blood pressure,
+and then you would draw a histogram with these means.
+That is what is called
+the sampling distribution. In the sampling distribution
+we have the same mean as the population,
+but the standard deviation of the sampling
+distribution will be smaller
+than the population, so you will get
+a distribution with a narrower shape.
+The larger the sample 
+size you choose, the smaller
+the variation will be in the sampling distribution. You can calculate the the standard deviation of the sampling distribution by taking the standard deviation of the population and dividing it by the square root of the sample size ($\sigma /\sqrt{n}$).
+
+When sampling from a normally distributed population,
+the sampling distribution will be normally distributed.
+But not all populations are
+in themselves normally distributed. Think about the time
+you will have to wait at the platform
+for the subway train to arrive. Given that there is a service
+every 10 minutes, it's equally probable
+that you should wait 1, 5
+or 9 minutes for your train. This is called
+the uniform distribution. If you
+take repeated samples from a uniform distribution,
+each time calculating the mean waiting time,
+the sampling distribution will be
+approximately normally distributed. Remember,
+there are many ways of getting the mean
+five minutes, but there
+are only a few ways of getting the mean
+one minute or nine minutes.
+
+
+## Using distributions with R
+```{r}
+# The density function of the normal distribution. Check:
+# ?dnorm, ?dt, ?dpois, ?dbinom, ?dchisq, etc
+
+# Density function graph for Z, which is normally distributed with mean 0 and std 1
+# Creating hypothetical sampling distribution
+x<-seq(-4, 4, 0.01)
+# Plot density of the standard normal distribution. Remember: density values are not probabilities
+plot(x, dnorm(x), type="l")
+# Distribution function, or Cumulative distribution function
+# For each x, what is the probability to draw x or a value lower than x
+plot(x, pnorm(x))
+# Quantile function is the inverse of pnorm. Useful for calculating confidence intervals
+# When you ask what value for z that includes 95% of the distribution
+round(qnorm(c(0.025, 0.975)),2)
+
+# Doing statistical tests
+bt <- seq(60, 120, 1)
+# One tailed test
+plot(bt, dnorm(bt, 90, 10), type="l", xlim=c(60, 120), main="one tailed test")
+pnorm(72, 90, 10) # p-value, probability of randomly selecting a subject bt 72 or lower
+abline(v=72) # Draw a line for 72 . v is the x-value for a vertical line
+cord.x <- c(60,seq(60,72,1),72)
+cord.y <- c(0,dnorm(seq(60, 72, 1), 90, 10),0)
+polygon(cord.x,cord.y,col='skyblue')
+text(70, 0.005, "blue area = p = 0.0359")
+# So if I measure the blood pressure of a person and it turns out to be 72 then it's
+# quite possible that this person belongs to the population with the mean 90 and
+# the standard deviation 10
+
+# Two-tailed test
+plot(bt, dnorm(bt, 90, 10), type="l", xlim=c(60, 120), main="two-tailed test")
+pnorm(72, 90, 10)
+# Probability to draw a person from the population that deviates 18 millimeter
+# mercury up or down from the mean 90.
+abline(v=72)
+cord.x <- c(60,seq(60,72,1),72)
+cord.y <- c(0,dnorm(seq(60, 72, 1), 90, 10),0)
+polygon(cord.x,cord.y,col='skyblue')
+cord.x1 <- c(108,seq(108,120,1),120)
+cord.y1 <- c(0,dnorm(seq(108, 120, 1), 90, 10),0)
+polygon(cord.x1,cord.y1,col='skyblue')
+text(65, 0.005, round(pnorm(72, 90, 10), 3))
+text(115, 0.005, round(pnorm(72, 90, 10), 3))
+text(75, 0.02,  " p = 0.072 "  )
+```
+
+## The standard normal distribution Z
+When a population is known to follow the normal distribution
+you just need to know the mean
+and the standard deviation and now
+you can draw a graph showing the whole population.
+You can often see
+this kind of annotation: $X\mathtt{\sim}N(\mu, \sigma)$. Let's say
+we denote blood pressure with X. It's normally distributed,
+therefore the tilde ($\mathtt{\sim}$) and N. Between parentheses
+we write 90 for the mean and
+10 for the standard deviation. 
+Consider the graph of the world population
+and their blood pressures presented previously. Imagine that
+each person occupies an
+equal space underneath this curve, so
+all of you with blood pressure ninety
+will be in the middle of this graph. How can we find
+the number of persons at each value
+for the blood pressure? Well, we can't
+keep a table for each possible normal distribution.
+Instead there is one table
+for the so-called standard normal distribution,
+also called Z.
+
+Z is normally distributed. It has
+a mean of zero and a standard deviation
+of one. The area
+under the Z curve equals one for a very good reason:
+it makes it easy to calculate probabilities.
+So the probability that
+I will pick a person that has any blood pressure
+will be one. What
+is the probability that I would pick a person
+with a blood pressure 90 or higher?
+Since 90 divides
+the curve in two halves, the probability will be
+50 percent.
+
+It's easy to transform any
+normally distributed variable to
+the standard normal distribution, as long as you know
+the mean and the standard deviation of your variable. Just use the formula $Z=(X-\mu)/\sigma$.
+Notice how the unit centimeter
+disappears in this operation.
+So now
+we have dropped the unit for the measurement
+and instead we describe the
+deviation from the mean using
+standard deviation as the unit.
+This is excellent, it allows us to take a sample
+and then describe how much it deviates
+from a hypothesized population,
+the so-called null hypothesis ($H_0$).
+
+By looking up the area under the Z curve
+from your measurement and then further away from the mean
+you will be able to tell how
+common it would be to take such a sample
+or a more extreme sample. This
+area is also referred to as the p-value.
+If the sample deviates a lot from the mean
+we are going to reject the null hypothesis
+and state that this sample probably belongs
+to some other distribution with a different mean.
+This is called the alternative hypothesis ($H_1$).
+A common choice is to reject
+the null hypotheses if the p-value
+is lower than 0.05.
+This means that if you would make 100
+samplings and those samplings are really from
+the null hypothesis population,
+during your 100 samplings you will probably
+on average reject your null hypothesis
+five times, although
+the null hypothesis was true.
+
+Using the Z distribution to decide whether a sample belongs
+to a population or not is actually
+a hypothesis test and as such
+it's called the Z test.
+What conditions need to be fulfilled
+for you to use a Z test? 
+Well, the test applies to
+data on interval or ratio scale.
+The population should follow the normal distribution
+and you need to know the population mean
+and standard deviation.
+Only then you can use the formula to transform
+your distribution to the Z distribution.
+Secondly, you need to look at the null hypothesis of the Z test
+and see if it matches the question you want to ask.
+The null hypothesis asks whether
+a sample belongs to
+a population with a certain mean. So if your question
+is about a mean, this might be a good choice.
+If your question is about the median,
+the variation or some other aspect,
+then you may have to go to a different test.
+
+What if our sample were a randomly selected group of people instead of one person? In this case, you calculate the sample mean and the standard deviation of this sampling distribution, but there is also this effect on the Z test formula: $Z=(\bar{X}-\mu)/(\sigma /\sqrt{\mu})$. We simply subtract the population mean from the sample mean, denoted as $\bar{X}$, and divide by the standard deviation of the sampling distribution. This allows us again to lookup how common it would be on repeated samplings to get the mean differing this much or even more from the population mean.
+
+## T-test
+When the standard deviation
+of the population is known you can use
+the z-test.
+Sometimes the standard deviation of the population is
+unknown so you will have to infer
+the population standard deviation from the sample standard deviation. We denote it as S, as seen in the t-test formula: $t=(\bar{X}-\mu)/(S/\sqrt{n})$. This is the so-called one sample test. There are some variations of it, like for instance the two sample and welch tests formulas, which are used in specific situtations.
+
+The result
+from the t-test formula T is not
+normally distributed. It follows the broader
+T distribution. Our
+estimate of the population standard deviation
+grows better as sample sizes grow larger.
+So there is one T distribution
+for each sample size,
+or more generally for each
+degree of freedom. At sample sizes larger
+than 300, the T distribution will be very similar to a Z distribution.
+
+Let's work through the formulas
+of some statistical tests, so-called
+test functions: 
+$$z=\frac{\bar{X}-\mu}{\sigma /\sqrt{n}}, \quad t=\frac{\bar{X}_A-\bar{X}_B}{S_{X_{A}X_{B}}\sqrt{\frac{1}{n_A}+\frac{1}{n_{B}}}}$$
+
+Pay attention to
+the similarities. The test functions
+all express some difference, replacing
+any measurement unit such as centimeter
+or kilogram with the variability
+as the new unit.
+The goal is to find out if a difference is
+large or negligible given the variability.
+Whenever you encounter
+the test function of a statistical test,
+explore it carefully. What
+needs to be known for the test to be applicable?
+Greek letter abbreviations
+such as $\mu$, $\sigma$,
+indicate that the
+population parameters mean
+and standard deviation need to be known.
+On the other hand, latin letter abbreviations
+such as $\bar{X}$ or
+$S$ indicate that you need to use
+the mean and standard deviation of the sample.
+
+Look at the numerator.
+Some difference is
+expressed, like the difference between a sample
+and the mean of a null hypothesis.
+The question you are asking is
+shown in the numerator.
+Now look at the denominator. Here you will find
+an expression of the variability.
+In the division your measurement unit such as kilogram
+or centimeter will be cancelled out.
+
+Note that each time you take a new sample, you expect
+to get a new value from your test function.
+The only thing we know is how
+the test function value will be distributed
+over repeated samplings.
+Furthermore, measuring areas under the distribution curves
+allows us to report the p-value,
+how common your sample would be given that the null hypothesis
+is true.
+
+## Hypothesis tests in R
+```{r}
+# You can recognize a null hypothesis because it sounds like:
+# "there was no difference"
+# For instance:
+# "The intervention did not affect blood pressure."
+
+# One tailed test
+# Rare in health sciences, more common in industrial process control
+x=seq(50,140,length=200)
+y1=dnorm(x,80, 10)
+plot(x,y1,type='l',lwd=2,col='red') # Null hypothesis
+y2=dnorm(x,110, 10)
+lines(x,y2,type='l',lwd=2,col='blue') # Alternative hypothesis
+# If we get a value higher than this line, reject H0 and assume H1 as correct 
+# Sometimes errors will happen, the so-called type 1 or alpha error
+abline(v=qnorm(0.95,80,10)) # Where 5% of population is to the right of line
+
+# Two tailed test
+# Common in the health sciences, because in most cases, both
+# an increase or a decrease in a variable would affect health
+x=seq(50,140,length=200)
+y1=dnorm(x,80, 10)
+plot(x,y1,type='l',lwd=2,col='red')
+y2=dnorm(x,110, 10)
+lines(x,y2,type='l',lwd=2,col='blue')
+# Colour the rejection area, also referred to as alpha
+cord.x1 <- c((round(qnorm(0.975, 80, 10))),seq((round(qnorm(0.975, 80, 10))), 120,1),120)
+cord.y1 <- c(0,dnorm(seq((round(qnorm(0.975, 80, 10))), 120, 1), 80, 10),0)
+polygon(cord.x1,cord.y1,col='red')
+cord.x2 <- c(50,seq(50,round(qnorm(0.025, 80, 10),1)),round(qnorm(0.025, 80, 10)))
+cord.y2 <- c(0,dnorm(seq(50,round(qnorm(0.025, 80, 10),1)), 80, 10),0)
+polygon(cord.x2,cord.y2,col='red')
+
+# Imagine that the alternative hypothesis were true
+# Beta is the risk that you will keep the false null hypothesis
+# Statistical power, 1-beta, is the probability to reject a false null hypothesis
+x=seq(50,140,length=200)
+y1=dnorm(x,80, 10)
+plot(x,y1,type='l',lwd=2,col='red')
+y2=dnorm(x,110, 10)
+lines(x,y2,type='l',lwd=2,col='blue')
+cord.x2<- c(0,seq((round(1-qnorm(0.025,110,10))),100,1),100)
+cord.y2 <- c(0,dnorm(seq((round(1-qnorm(0.025, 110, 10))), 100, 1), 110, 10),0)
+polygon(cord.x2,cord.y2,col='red')
+abline(v=round(qnorm(0.975, 80, 10, lower.tail=T)))
+abline(v=round(qnorm(0.025, 80, 10, lower.tail=T)))
+cord.x1 <- c(100,seq(round(qnorm(0.975, 80, 10, lower.tail=T)), 140,1),140)
+cord.y1 <- c(0,dnorm(seq(round(qnorm(0.975, 80, 10, lower.tail=T)),140, 1), 110, 10),0)
+polygon(cord.x1,cord.y1,col='6')
+text(95,0.005, "ß ",xpd=5)
+text(115,0.005, "1-ß ",xpd=5)
+
+# T-test
+# Weights of two groups
+A <- c(97,98,78,80,81,84,85,85,86,94,100,102,103,104)
+B <- c(76,87,89,90,94,96,98,99,100,106,109,112,113,105)
+weight<-data.frame(A,B)
+t.test(weight)
+# For two independent groups
+t.test(weight$A, weight$B)
+#Welch method is used if var.equal=T, meaning two equal variances
+t.test(weight$A, weight$B, var.equal=T)
+# So it means that the probability to draw two samples from the same population
+# and get this difference between the means is actually close to eight percent
+# chance so normally in this case we would not reject the null hypothesis
+# We cannot conclude that these two groups differ in mean
+
+# Paired t-tests are used to calculate differences whithin each before-after
+# pair of measurements, determines the mean of these changes and report whether
+# this mean of the differences is statically significant (e.g. weights before and)
+# after some kind of diet
+t.test(weight$A, weight$B, paired=T)
+# The mean of the differences -6.9285 and p-value 0.02717 mean that the probability
+# that the mean paired differences in the two groups would be 6.9 is lower than 5%
+# So at the 5% level we would here reject the null hypothesis, and conclude that
+# they seem to be a difference between the two groups
+```
+
+## Linear regression in R
+Imagine you have measured two variables for each subject in a study. They are on interval scale or ratio scale and are at least roughly normally distributed. You suspect that the variables may be associated, so maybe a linear model would fit: y = a + bx + error.
+
+```{r}
+set.seed(278)
+x <- rnorm(25, mean=100, sd=10)
+y <- 2 * x + 20 + rnorm(25, mean=10, sd=4)
+# For linear regression to apply the variables should be normally distributed
+# Always start by looking at the data. Does it look like a linear model would fit?
+plot(x,y)  # Do you think a linear model would fit?
+cor(x,y)  # If you just want the correlation coefficient
+cor(x,y)^2 # Or the coefficient of determination
+lm.obj <- lm(y~x) # See how models are described in R. y depends on x
+abline(lm.obj)    # We can add the regression line to the scatterplot
+prediction <- predict(lm.obj) # The predicted y-values for your x-values
+points(x,prediction, col="green") # Add predicted values to the graph
+par(mfrow=c(2,2)) # Prepare for a 2x2 layout
+plot(lm.obj) # The built in controls for your regression analysis
+par(mfrow=c(1,1)) # Restore 1x1 layout
+```
+
+# Non-parametric tests
+If your your data don't fulfill the criteria for using a parametric test, e.g. the parameters are unknown, the sample is be too small, it is a skewed distribution or it is on ordinal scale level, you can still use a so-called nonparametric test, also called distribution free test. In this case you will make no assumptions about the distribution. 
+
+## Choosing between parametric and nonparametric tests
+Imagine you have measured the blood pressure
+of thirty persons in a control group
+and thirty persons in a certain risk group for hypertension.
+The questions you really want to ask
+is whether the mean blood pressure
+differs in the populations that you have drawn samples from.
+In this case, your data is clearly
+on ratio scale and the sample size
+30 is large enough for you
+to assume that the sampling distribution
+is normally distributed.
+In the test formula for group wise t-test, you
+compare means of two samples
+to figure out if this is
+a large or a small difference. So
+in this case a group wise t-test would be
+ideal, but what if your sample size
+were five persons and
+you had no previous knowledge to
+prove that your sample was normally distributed?
+In this case, you should stay on the safe side
+and select a nonparametric alternative
+to the groupwise T-test. The appropriate test
+in this case would be the Wilcoxon test,
+also called Mann-Whitney. For this test
+it's enough even if you had
+data only on ordinal scale.
+So, for instance, if you only had
+access to ranking of your subjects
+from the lowest to the highest blood pressure,
+this would be enough to calculate a Mann-Whitney test.
+
+Imagine, on the other hand,
+that you had measured the blood pressure of thirty persons.
+Now you subject them to some kind of intervention.
+After the intervention you measure
+the blood pressure of each person again. In this case
+you're not asking whether the group mean has
+changed. Instead you collect
+the individual change of each person
+and then you calculate the mean of all the changes.
+You want to ask if this mean
+differs from zero. So
+this strategy will allow you to detect
+the effect of an intervention even
+if the starting, or initial, values
+of the subjects differed alot. This is often the case
+in human studies. In the formula for the
+pairwise t-test you can see
+that you are 
+asking whether the
+mean difference differs from zero.
+Also for the
+paired t-test there is a nonparametric alternative, you can use the Wilcoxon test.
+
+Imagine that you
+have measured the blood pressure of
+a control group and the blood pressure
+of 3 experimental groups,
+each of them subjected to a different intervention.
+Here you cannot use the t-test or
+the Mann-Whitney. You will have to use
+the anova test, if
+your data is normally distributed
+and on interval or ratio scale.
+If you cannot show that your data is normally distributed,
+or if you only have access to ordinal scale data,
+you will have to use the nonparametric
+alternative: kruskal wallis test.
+
+You have now seen examples that
+for parametric tests
+there is usually a nonparametric
+alternative that you can use
+if certain conditions don't apply.
+So if you're not sure whether
+conditions for a parametric test apply,
+why not always use a nonparametric test?
+Well the problem is that the
+nonparametric tests typically have
+lower statistical power.
+This means that for you to prove
+that there is a statistically significant difference
+you would need to measure a larger difference.
+Your test will be less sensitive.
+
+<!--Restart from here-->
+## Non-parametric tests in R
+```{r}
+# Wilcoxon rank-sum test, also known as Mann–Whitney tes,t is an alternative to the groupwise t-test
+# White blood cell counts for dengue and typhus. Can we used it to distinguish the two?
+dengue.fever <-c(3000,3200,3500,5068,5679,6200,6300,7020)
+scrub.typhus<-c(4400,4500,5900,6839,7561,9047,12300,14000)
+wilcox.test(dengue.fever,scrub.typhus)
+t.test(dengue.fever,scrub.typhus,var.equal=T)
+
+# Wilcoxon signed-rank test is an alternative to the paired t-test
+A <- c(91,91,93,106,97,108,97,105,106,103,105,96,105,95,90,101)
+B <- c(90,89,85,99,93,104,89,103,102,95,103,95,105,87,86,101)
+t.test(A,B,paired=T)
+wilcox.test(A,B, paired=T)
+```
+
+An elegant way to figure out the standard deviation of a normal distribution to fit a binomial distribution is using the binomial formula:
+$\sigma =np(1-p)$, n of tries, p of success
+Using the normal distribution formula is not a good idea because it may not be a good approximation to the binomial (i.e. few samples) 
+($\bar{x}$) refers to the sampling distribution. Therefore, these can be used to find out some informations about the original distribution.
+$\mu (\bar{x})=\mu$
+$\sigma (\bar{x})=\frac{\sigma}{\sqrt{n}}$
+
+## Error and measurements
+Refer to the figure in this link to read about some concepts:
+[linked phrase](http://en.wikipedia.org/wiki/Accuracy_and_precision)
+
+Precision describes how much repeated measurements show the same result. A useful statistical tool for describing and comparing precision is to measure standard deviation, divide by the mean and multiply by 100. This is called the coefficient of variance, CV. It shows how large the standard deviation is in percent, compared to the mean.
+
+Possible solution
+cv <- function(m)(sd(m)/mean(m)*100)
+round(cv(instrument1),1)
+round(cv(instrument2),1)
+
+Accuracy means how close the measurements are to the true value, on average. This distance is called the systematic error. To find out whether a systematic error exists you could use two instruments to measure the blood pressure of a group of subjects, measuring each subject with both instruments.
+
+## Test for normally distributed data
+Parametric tests, such as the t-test or the z-test, are based on knowledge about the population distribution, or the sampling distribution. Parametric tests typically have high statistical power and are therefore good alternatives. To be able to use this kind of test you may need to show that your data is at least approximately normally distributed. Let us try some strategies for testing normality. 
+
+
+body <-
+read.table("http://www.amstat.org/publications/jse/datasets/body.dat.txt")
+dim(body)  #Check that dimensions are 507  25
+BodyMeasurements <- c("Biacromial_diameter","Biiliac_diameter",
+"Bitrochanteric_diameter", "Chest_depth","Chest_diameter",
+"Elbow_diameter","Wrist_diameter", "Knee_diameter","Ankle_diameter",
+"Shoulder_girth","Chest_girth", "Waist_girth","Navel_girth",
+"Hip_girth","Thigh_girth", "Bicep_girth","Forearm_girth",
+"Knee_girth","Calf_max_girth", "Ankle_min_girth","Wrist_min_girth",
+"Age","Weight","Height","Gender")
+names(body) <- BodyMeasurements
+The appropriate variable type of gender is factor
+body$Gender <- as.factor(body$Gender)
+
+Boxplot can give you a clue, but you could use a histogram do get a closer look at it. If the histogram doesnt look like normally distributed data, you can already draw some conclusions. A better visual check of normality than a boxplot or a histogram is the so called Q-Q plot (quantile-quantile plot). A Q-Q plot is a scatterplot of quantiles of two distributions. If the distributions are similar in shape, the plot will come out as a straight line x=y. The following code is for testing whether the mean Shoulder_girth differs between males and females.
+
+The null hypothesis would be: There is no difference in means. H0: $\mu$ males = $\mu$ females
+
+The alternative hypothesis would be: There is a difference in means. H1: $\mu$ males $\neq$ $\mu$ females
+
+t.test(body$Shoulder_girth ~ body$Gender, var.equal=T) #possible solution
+
+
+## Resampling
+Sometimes lack of knowledge about distributions be compensated with computational power
+If the null hypothesis were true, the group names 1 and 2  in our t.test experiment should have no meaning. 1 and 2 are samples from the same population.
+
+set.seed(570)
+group1 <- rnorm(13,90, 10)
+group2 <- rnorm(13,100,10)
+So let’s pool the values in one group for a while
+group <- c(group1,group2)
+
+We sample new random groups from the same data, with replacement
+dif <- numeric(10000)
+for(i in 1:10000){
+dif[i]<-mean(sample(group,13,replace=T))-mean(sample(group,13,replace=T))
+}
+
+Calculate mean difference between the random groups 10000 times and plot a histogram
+
+hist(dif)
+
+We can construct an empirical cumulative distribution function using ecdf()
+In this case ‘empirical’ means: we have no theory, we figured out by experimentation
+
+Fn <- ecdf(dif)
+
+Draw a plot of cumulated probabilities to draw a difference in means equal to or smaller than x
+
+plot(Fn)
+
+Let’s go back to our measured difference from the t.test excercise
+
+measured.dif <- mean(group1)-mean(group2)
+
+Use Fn to look up how many resamplings were like measured.dif or smaller
+
+Fn(measured.dif)
+
+Can you see how this corresponds to the p-value of a one-tailed test?
+Look at this result:
+
+t.test(group1,group2, var.equal=T)$p.value
+
+Let’s make a one-tailed test for those who don’t like dividing by 2  ;)
+
+t.test(group1,group2, var.equal=T, alternative = "less" )$p.value
+
+The results are strikingly similar, don't they?
+
+A commonly used package for gene expression analysis, samr, has a resampling step, not unsimilar to what you just saw.
+
+## Spearman coefficient
+Spearman's rank correlation coefficient
+In week three some of you worked through a quick guide to linear regression in the learning sequence ‘Applied statistical programming’.  In the guide you briefly encountered the Pearson correlation coefficient r. This is a useful measure of association between variables. If data is on interval scale or ratio scale, if data is roughly normally distributed, and finally, if there is a linear correlation between the variables.
+
+Here is a reminder of the week three activity, please run the code again:
+
+Create some data
+set.seed(278)
+x <- rnorm(25, mean=100, sd=10)
+y <- 2 * x + 20 + rnorm(25, mean=10, sd=4)
+cor(x,y)  #If you just want the correlation coefficient
+cor(x,y)^2 #Or the coefficient of determination
+
+If your data is on ordinal scale (ist, 2nd, ...) you can calculate a non-parametric alternative called  Spearman's rank correlation coefficient.  In R you just pass method="spearman" as an argument to cor()
+
+cor(x,y, method="spearman")
+
+You can also calculate a coefficient of determination, just like you can do for Pearson r. See also kendall method.
+
+cor(x,y, method="spearman")^2
+
+## ANOVA and Kruskal
+When do you need ANOVA  instead of a t-test?
+(Similar to: When do you need Kruskal-Wallis instead of Wilcoxon?)
+
+You have used the t-test to determine whether two samples are drawn from the same population. You compare a control group to a treatment group. 
+
+But what if you were comparing more than two groups? Maybe a control group compared to three different treatments. Calculating a t-test for each possible pair in the set is a bad idea: You would need to adjust your p-values because you perform many tests.  (Remember Q9 and Q10 of week 3). The simplest ANOVA, the so called one-way ANOVA, tests the null hypothesis: “all samples are drawn from the same population”. We are interested in  the mean values for the populations, µ. In the example in R code below you will create samples a,b,c,d,e. We imagine they are drawn from the populations A,B,C,D,E.
+
+H0: µA = µB = µC =µD = µE     The null hypothesis says A,B,C,D,E are all the same.
+
+H1:(µA = µB = µC =µD = µE) is not true.    The alternative hypothesis says one or more populations differ.
+
+The technique can be used for more complex questions, like measuring interactions (a factor may affect blood pressure differently in males and females).
+
+Rough guide to the secrets inside ANOVA
+ANOVA, short for Analysis Of VAriance, is a method that calculates and compares two different estimates of the population variance.
+
+One method is to calculate the variance in each experimental group and take the mean of these variances. Note that this estimate works well whether H0 is true or false. We assume that the variance is the same in all tested populations though!
+
+The other method to estimate population variance comes from the Central Limit Theorem. This estimate is dependent on the null hypothesis being true. Remember that you were able to estimate the population sd from the sd of the sampling distribution of the mean in Q7 Week 3! Note that the variance is equal to the standard deviation squared. Study Question: Imagine that one of your samples comes from a population with a very different mean. What would happen to your variance estimate? Would it grow larger or smaller? The code below will show you the answer.
+
+The ANOVA p-value tells you how common it would be measure the ratio you see between these two variance estimates, or an even larger ratio,  just by chance, given that the null hypothesis were true. If the null hypothesis is false, you will most probably see a large ratio for the two variance estimates.
+
+Very rough guide to interpreting a one way ANOVA
+Look for the p-value. If it’s below 0.05, reject the null hypothesis. Conclude that one or more of the groups are drawn from different populations.
+
+Here we generate data and calculate an ANVOVA
+First it’s five groups of people who went through different training routines. There is no big difference in running performance between the groups though. Look at the p-value: 0.216  We can't reject the null hypothesis. You can expect this kind of result, or a more extreme result, one time in five given that the null hypothesis is true.
+
+set.seed(896); 
+run<- data.frame(time=rnorm(50,mean=50,sd=10),training.method=rep(letters[1:5],each=10));  
+'''summary(aov(run$time~run$training.method)) '''
+
+Here we introduce a noticeable performance increase for group A and run the ANOVA again
+run[1:10,1] <- run[1:10,1] - 15
+'''summary(aov(run$time~run$training.method))'''
+
+Look what happened to the two different variance estimates, if you can find them in the table. A hint is given in the code in the end of the page. Look what happened to the p-value now. This result happens now and then even when the null hypothesis is true. You expect it to happen once in a hundred trials. That's not so common. We reject the null hypothesis.
+
+Imagine we only had access to rank order between the runners. Or imagine our data was known to be skewed. Then you would have to choose the non-parametric alternative Kruskal-Wallis test. Here the null hypothesis states there is no location shift between the sampled populations. No means are measured, since the test is calculated on ordinal scale data.
+
+'''kruskal.test(run$time~run$training.method)'''
+
+Compare the p-values you get from the kruskal.test() to the aov() results.
+
+Continue here only if you have more time
+Do you want to explore the ANOVA results table and figure out if the “Rough guide to the secrets inside ANOVA” holds true? Run the code below, inspect our code and find the corresponding results in the ANOVA table. Study Question: How is the F-value of the ANOVA table calculated.
+'''
+summary(aov(run$time~run$training.method))
+'''
+count <- 0
+variances <- NULL
+for (i in 1:5){
+count <- count + 1
+'''
+variances <- c(variances, var(run$time[run$training.method==letters[count]]))
+'''
+}
+variances
+sum(variances)/5
+
+
+count <- 0
+means <- NULL
+for (i in 1:5){
+count <- count + 1
+'''
+means <- c(means, mean(run$time[run$training.method==letters[count]]))
+'''
+}
+means
+var(means) * 10
+
+
