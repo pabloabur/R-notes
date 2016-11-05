@@ -127,7 +127,7 @@ ls() # Check local namespace values
 rm(pi) # Remove it
 # rm(list=ls()) Remove everything
 # save(object, file="name.rda") can be used to save objects as files in workspace
-# load() it again
+# save(obj1, obj2, ..., file="name.rds") for saving many objects together
 # search() list packages loaded in your session
 # install.packages() to install packages
 # library() activate a package
@@ -181,6 +181,16 @@ plot(obesitylong$value~obesitylong$variable)
 
 # install.packages("lubridate") can be useful to work with date formats
 # setting argument colClasses=  in read.table() can reduce import time of large datasets
+
+# Another useful package is dplyr. It has functions to combine datasets
+library (dplyr)
+b<-c("mariam", "jane", "david", "depak")
+d<-c("Coltrane", "Davis", "Baker", "Mingus")
+join_DataFrame <- data.frame(b, d)
+inner_join (MyDataFrame, join_DataFrame)
+left_join (MyDataFrame, join_DataFrame)
+left_join (join_DataFrame, MyDataFrame)
+full_join (MyDataFrame, join_DataFrame)
 
 # Dataset exploring the relation in body dimensions
 body <- read.csv("https://www.amstat.org/publications/jse/datasets/body.dat.txt", sep = "")
